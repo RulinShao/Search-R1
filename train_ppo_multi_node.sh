@@ -13,6 +13,10 @@
 #SBATCH --output=/fsx-comem/rulin/Search-R1/outputs/slurm_cache/slurm-%A_%a.out
 #SBATCH --array=0-1              # Two array tasks: 0 for head, 1 for worker
 
+# Configure Ray environment variables
+export RAY_DISABLE_AUTOSCALER=1
+export RAY_DISABLE_AUTO_RESOURCE_REQUEST=1
+
 export DATA_DIR='data/nq_search'
 export VLLM_ATTENTION_BACKEND=XFORMERS
 
@@ -44,8 +48,9 @@ if [ "${SLURM_ARRAY_TASK_ID}" -eq 0 ]; then
     echo "Head node IP: $ip_head"
     echo "$ip_head" > $HEAD_IP_FILE
     
-    # Start Ray on head node with CPU resources
-    ray start --head --port=6379 --num-cpus=4 --block &
+    # Start Ray on head node with explicit resource configuration
+    echo "Starting Ray head node with proper resource allocation..."
+    ray start --head --port=6379 --num-cpus=8 --num-gpus=8 --object-store-memory=100000000000 --block &
     RAY_PID=$!
     
     # Wait for Ray to initialize
@@ -81,6 +86,8 @@ if [ "${SLURM_ARRAY_TASK_ID}" -eq 0 ]; then
     # Start the training process
     echo "Starting training on head node..."
     export RAY_ADDRESS="auto"  # Ensure Python connects to the existing Ray cluster
+    # Disable Ray autoscaling for training
+    export RAY_DISABLE_AUTOSCALER=1
     
     python3 -u -m verl.trainer.main_ppo \
         data.train_files=$DATA_DIR/train.parquet \
@@ -141,7 +148,7 @@ if [ "${SLURM_ARRAY_TASK_ID}" -eq 0 ]; then
         trainer.default_hdfs_dir=null \
         trainer.default_local_dir=verl_checkpoints/$EXPERIMENT_NAME \
         max_turns=2 \
-        retriever.url="http://rulin@a100-st-p4de24xlarge-946:38649/search" \
+        retriever.url="http://rulin@a100-st-p4de24xlarge-946:38649/retrieve" \
         retriever.topk=3 \
         2>&1 | tee ${COORDINATOR_DIR}/${EXPERIMENT_NAME}.log
         
@@ -177,9 +184,9 @@ else
     ip_head=$(cat $HEAD_IP_FILE)
     echo "Found head node IP: $ip_head"
     
-    # Connect to the Ray cluster
-    echo "Connecting to Ray head node at $ip_head:6379"
-    ray start --address=$ip_head:6379 --num-cpus=4 --block &
+    # Connect to the Ray cluster with explicit resource configuration
+    echo "Connecting to Ray head node at $ip_head:6379 with proper resource allocation"
+    ray start --address=$ip_head:6379 --num-cpus=8 --num-gpus=8 --object-store-memory=100000000000 --block &
     RAY_PID=$!
     
     # Wait to ensure connection is established

@@ -387,7 +387,7 @@ def find_free_port():
 if __name__ == "__main__":
     port = find_free_port()
     server_id = socket.gethostname()
-    endpoint = f'rulin@{server_id}:{port}/search'  # replace with your endpoint
+    endpoint = f'rulin@{server_id}:{port}/retrieve'  # replace with your endpoint
     print(f'Running at {endpoint}')
     with open('/fsx-comem/rulin/Search-R1/running_ports_wiki.txt', 'a+') as fout:
         fout.write(endpoint)
