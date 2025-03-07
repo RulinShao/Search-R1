@@ -28,7 +28,7 @@ WAND_PROJECT='Search-R1'
 # export BASE_MODEL='meta-llama/Llama-3.2-3B'
 # export EXPERIMENT_NAME=nq-search-r1-ppo-llama3.2-3b-em
 export BASE_MODEL='meta-llama/Llama-3.2-3B-Instruct'
-export EXPERIMENT_NAME=nq-search-r1-ppo-llama3.2-3b-it-em
+export EXPERIMENT_NAME=nq-search-r1-ppo-llama3.2-3b-it-em-1n
 # export BASE_MODEL='meta-llama/Llama-3.1-8B'
 # export EXPERIMENT_NAME=nq-search-r1-ppo-llama3.1-8b-em
 # export BASE_MODEL='meta-llama/Llama-3.1-8B-Instruct'
@@ -108,6 +108,6 @@ PYTHONUNBUFFERED=1 python3 -m verl.trainer.main_ppo \
     trainer.default_hdfs_dir=null \
     trainer.default_local_dir=verl_checkpoints/$EXPERIMENT_NAME \
     max_turns=2 \
-    retriever.url="http://rulin@a100-st-p4de24xlarge-946:38649/search" \
+    retriever.url="http://rulin@a100-st-p4de24xlarge-946:38649/retrieve" \
     retriever.topk=3 \
     2>&1 | tee $EXPERIMENT_NAME.log
