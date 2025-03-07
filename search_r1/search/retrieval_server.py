@@ -3,6 +3,7 @@ import os
 import warnings
 from typing import List, Dict, Optional
 import argparse
+import socket
 
 import faiss
 import torch
@@ -377,6 +378,20 @@ def retrieve_endpoint(request: QueryRequest):
     return {"result": resp}
 
 
+def find_free_port():
+    # https://stackoverflow.com/a/36331860
+    with socket.socket() as s:
+        s.bind(("", 0))  # Bind to a free port provided by the host.
+        return s.getsockname()[1]  # Return the port number assigned.
+
 if __name__ == "__main__":
+    port = find_free_port()
+    server_id = socket.gethostname()
+    endpoint = f'rulin@{server_id}:{port}/search'  # replace with your endpoint
+    print(f'Running at {endpoint}')
+    with open('/fsx-comem/rulin/Search-R1/running_ports_wiki.txt', 'a+') as fout:
+        fout.write(endpoint)
+        fout.write('\n')
+        
     # 3) Launch the server. By default, it listens on http://127.0.0.1:8000
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    uvicorn.run(app, host="0.0.0.0", port=port)
