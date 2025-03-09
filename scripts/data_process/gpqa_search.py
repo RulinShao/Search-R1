@@ -1,23 +1,9 @@
-# Copyright 2024 Bytedance Ltd. and/or its affiliates
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-"""
-Preprocess the gpqa dataset to parquet format
-"""
-
 import re
 import os
 import datasets
+import json
+from huggingface_hub import hf_hub_download
+from datasets import load_dataset, Dataset
 
 from verl.utils.hdfs_io import copy, makedirs
 import argparse
@@ -51,18 +37,6 @@ if __name__ == '__main__':
 
     # Direct file loading approach
     try:
-        # Try loading the repository as a whole first
-        dataset = datasets.load_dataset('rulins/gpqa_preprocessed')
-        
-        # Check what splits are available
-        print(f"Available splits: {list(dataset.keys())}")
-        
-        # If the structure isn't as expected, load files directly
-        from huggingface_hub import hf_hub_download
-        from datasets import load_dataset, Dataset
-        import json
-        import os
-        
         # Download the specific JSON files
         main_file = hf_hub_download(
             repo_id="rulins/gpqa_preprocessed",
@@ -87,56 +61,125 @@ if __name__ == '__main__':
         train_dataset = Dataset.from_list(main_data)
         test_dataset = Dataset.from_list(diamond_data)
         
+        print(f"Loaded train dataset with {len(train_dataset)} examples")
+        print(f"Loaded test dataset with {len(test_dataset)} examples")
+        
     except Exception as e:
         print(f"Error loading data: {e}")
         raise
 
-    # add a row to each data item that represents a unique id
+    # Print the original format for debugging
+    print("Original train example:", train_dataset[0])
+
+    # First, transform the data to match the expected format
+    def transform_data(examples, split_name, start_idx=0):
+        transformed = []
+        
+        for idx, example in enumerate(examples):
+            # Create a simple ID format like 'train_0'
+            example_id = f"{split_name}_{idx + start_idx}"
+            
+            # Extract the question and remove answer choices from the question
+            question_text = example['Question'].strip()
+            
+            # Get the answer
+            answer = example['Correct Answer']
+            
+            # Create the transformed example with the expected fields
+            transformed_example = {
+                'id': example_id,
+                'question': question_text,
+                'golden_answers': [answer],
+                # Keep original fields too for reference
+                'original_domain': example.get('High-level domain', ''),
+                'original_subdomain': example.get('Subdomain', '')
+            }
+            
+            transformed.append(transformed_example)
+        
+        return Dataset.from_list(transformed)
+
+    # Transform the datasets
+    train_dataset = transform_data(train_dataset, 'train')
+    test_dataset = transform_data(test_dataset, 'test')
+
+    # Print transformed example for verification
+    print("Transformed train example:", train_dataset[0])
+
+    # Add a row to each data item that represents the required format
     def make_map_fn(split):
         def process_fn(example, idx):
-            # The data is already preprocessed, so we can use the fields directly
-            question = example['Question']
-            correct_choice = example['Correct Choice']
+            # Make sure question is properly formatted
+            question = example['question'].strip()
+            if question[-1] != '?':
+                question += '?'
+                
+            # Create a dict with the question field for make_prefix function
+            question_dict = {'question': question}
             
-            # For golden answers, we'll use the 'Correct Answer' field directly
-            golden_answers = [example['Correct Answer']]
+            # Get the prefix template
+            question_prefix = make_prefix(question_dict, template_type=args.template_type)
             
-            solution = {
-                "target": correct_choice,
-            }
-
+            # Create the data dictionary matching NQ format
             data = {
                 "data_source": data_source,
                 "prompt": [{
                     "role": "user",
-                    "content": question,
+                    "content": question_prefix,
                 }],
                 "ability": "fact-reasoning",
                 "reward_model": {
                     "style": "rule",
-                    "ground_truth": solution
+                    "ground_truth": {
+                        "target": example['golden_answers']
+                    }
                 },
                 "extra_info": {
                     'split': split,
                     'index': idx,
-                    'id': example['id'],
-                    'domain': example['High-level domain'],
-                    'subdomain': example['Subdomain']
+                    'id': example['id']
                 }
             }
+            
+            # Optionally add original domain info if needed
+            if 'original_domain' in example:
+                data['extra_info']['domain'] = example['original_domain']
+            
+            if 'original_subdomain' in example:
+                data['extra_info']['subdomain'] = example['original_subdomain']
+                
             return data
 
         return process_fn
 
+    # Apply the transformation
     train_dataset = train_dataset.map(function=make_map_fn('train'), with_indices=True)
     test_dataset = test_dataset.map(function=make_map_fn('test'), with_indices=True)
 
+    # Print final example to verify format
+    print("Final processed train example:", train_dataset[0])
+    
+    # Ensure the datasets are not empty
+    assert len(train_dataset) > 0, "Processed train dataset is empty!"
+    assert len(test_dataset) > 0, "Processed test dataset is empty!"
+
+    # Create output directory
     local_dir = args.local_dir
     hdfs_dir = args.hdfs_dir
+    os.makedirs(local_dir, exist_ok=True)
 
+    # Save to parquet format
     train_dataset.to_parquet(os.path.join(local_dir, 'train.parquet'))
     test_dataset.to_parquet(os.path.join(local_dir, 'test.parquet'))
 
+    # Verify files were created successfully
+    assert os.path.exists(os.path.join(local_dir, 'train.parquet')), "Train parquet file was not created!"
+    assert os.path.exists(os.path.join(local_dir, 'test.parquet')), "Test parquet file was not created!"
+    
+    print(f"Successfully created parquet files in {local_dir}")
+
+    # Copy to HDFS if needed
     if hdfs_dir is not None:
         makedirs(hdfs_dir)
         copy(src=local_dir, dst=hdfs_dir)
+        print(f"Copied parquet files to HDFS: {hdfs_dir}")
