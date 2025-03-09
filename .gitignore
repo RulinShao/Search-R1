@@ -122,3 +122,6 @@ log/
 **logs
 
 index/
+coordination/
+verl_checkpoints/
+running_ports*

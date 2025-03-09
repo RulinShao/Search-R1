@@ -1,1 +1,1 @@
-rulin@a100-st-p4de24xlarge-946:38649/search
+rulin@a100-st-p4de24xlarge-946:38649/retrieve
