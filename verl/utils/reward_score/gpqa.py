@@ -36,6 +36,8 @@ def compute_score(solution_str, ground_truth, format_score=0., score=0.) -> floa
         # Check exact match
         if normalized_pred_answer == normalized_ground_truth:
             retval = 1.0
+        else:
+            retval = 0.1  # give a bit format score
     except Exception as e:
         print(f"Error in compute_score: {e}")
     
