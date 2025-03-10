@@ -516,8 +516,10 @@ class RayPPOTrainer(object):
                             gen_batch=test_gen_batch,
                             initial_input_ids=first_input_ids,
                         )
+                        print(f"🩷 Received the final outputs for the test gen batch")
                     
                     test_batch = test_batch.union(final_gen_batch_output)
+                    print(f"🩷 Unioned the final outputs for the test gen batch")
                     
                     for key in test_batch.batch.keys():
                         test_batch.batch[key] = test_batch.batch[key].long()
@@ -528,6 +530,7 @@ class RayPPOTrainer(object):
                         reward_tensor = self.val_reward_fn(test_batch)
                     except:
                         print(test_batch)
+                        print(f"❤️‍🩹 failed to get the reward for the test batch.")
                         exit()
 
                     reward_tensor_lst.append(reward_tensor)
@@ -734,6 +737,7 @@ class RayPPOTrainer(object):
                                 gen_batch=gen_batch,
                                 initial_input_ids=first_input_ids,
                             )
+                            print(f"💛 In the trainer loop, we've gotten the final output")
 
                         # final_gen_batch_output.batch.apply(lambda x: x.long(), inplace=True)
                         for key in final_gen_batch_output.batch.keys():

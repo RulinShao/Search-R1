@@ -3,7 +3,7 @@ from collections import Counter
 import string
 
 
-def compute_score(solution_str, ground_truth) -> float:
+def compute_score(solution_str, ground_truth, format_score=0., score=0.) -> float:
     """
     Compute score for GPQA solutions.
     
@@ -14,6 +14,8 @@ def compute_score(solution_str, ground_truth) -> float:
     Returns:
         float: Score between 0.0 and 1.0
     """
+    print(f"🩷💛🩵 Computing gpqa scores:\n")
+    print(f"🩷💛🩵 {solution_str}\n{ground_truth}")
     retval = 0.0
     try:
         # Extract the answer from the solution string
@@ -37,6 +39,7 @@ def compute_score(solution_str, ground_truth) -> float:
     except Exception as e:
         print(f"Error in compute_score: {e}")
     
+    print(f"🩷💛🩵 Correctness: {retval}")
     return retval
 
 

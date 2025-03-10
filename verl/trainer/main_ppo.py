@@ -75,6 +75,9 @@ class RewardManager():
 
             # select rm_score
             data_source = data_item.non_tensor_batch['data_source']
+            print(f"💗 Right before computing the reward score!")
+            print(f"🧡 solution: ", sequences_str)
+            print(f"🧡 ground_truth: ", ground_truth)
             compute_score_fn = _select_rm_score_fn(data_source)
 
             score = compute_score_fn(solution_str=sequences_str, ground_truth=ground_truth, format_score=self.format_score)

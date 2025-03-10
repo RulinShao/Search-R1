@@ -9,6 +9,7 @@ from verl.utils.hdfs_io import copy, makedirs
 import argparse
 
 
+example_answer = "\\(\\boxed{C}\\)"
 def make_prefix(dp, template_type):
     question = dp['question']
 
@@ -19,7 +20,7 @@ def make_prefix(dp, template_type):
 You must conduct reasoning inside <think> and </think> first every time you get new information. \
 After reasoning, if you find you lack some knowledge, you can call a search engine by <search> query </search> and it will return the top searched results between <information> and </information>. \
 You can search as many times as your want. \
-If you find no further external knowledge needed, you can directly provide the answer inside <answer> and </answer>, without detailed illustrations. For example, <answer> Beijing </answer>. Question: {question}\n"""
+If you find no further external knowledge needed, you can directly provide the answer inside <answer> and </answer>, without detailed illustrations. For example, <answer> The correct answer is {example_answer}. </answer>. Question: {question}\n"""
     else:
         raise NotImplementedError
     return prefix
@@ -68,31 +69,23 @@ if __name__ == '__main__':
         print(f"Error loading data: {e}")
         raise
 
-    # Print the original format for debugging
-    print("Original train example:", train_dataset[0])
-
     # First, transform the data to match the expected format
     def transform_data(examples, split_name, start_idx=0):
         transformed = []
         
         for idx, example in enumerate(examples):
-            # Create a simple ID format like 'train_0'
-            example_id = f"{split_name}_{idx + start_idx}"
-            
             # Extract the question and remove answer choices from the question
             question_text = example['Question'].strip()
             
             # Get the answer
-            answer = example['Correct Answer']
+            # answer = example['Correct Answer']
+            answer = example['Correct Choice']
             
             # Create the transformed example with the expected fields
             transformed_example = {
-                'id': example_id,
+                'id': f"{split_name}_{idx + start_idx}",
                 'question': question_text,
                 'golden_answers': [answer],
-                # Keep original fields too for reference
-                'original_domain': example.get('High-level domain', ''),
-                'original_subdomain': example.get('Subdomain', '')
             }
             
             transformed.append(transformed_example)
@@ -110,22 +103,17 @@ if __name__ == '__main__':
     def make_map_fn(split):
         def process_fn(example, idx):
             # Make sure question is properly formatted
-            question = example['question'].strip()
-            if question[-1] != '?':
-                question += '?'
+            example['question'] = example['question'].strip()
                 
-            # Create a dict with the question field for make_prefix function
-            question_dict = {'question': question}
-            
             # Get the prefix template
-            question_prefix = make_prefix(question_dict, template_type=args.template_type)
+            question = make_prefix(example, template_type=args.template_type)
             
-            # Create the data dictionary matching NQ format
+            # Create the data dictionary matching NQ format exactly
             data = {
                 "data_source": data_source,
                 "prompt": [{
                     "role": "user",
-                    "content": question_prefix,
+                    "content": question,
                 }],
                 "ability": "fact-reasoning",
                 "reward_model": {
@@ -137,17 +125,9 @@ if __name__ == '__main__':
                 "extra_info": {
                     'split': split,
                     'index': idx,
-                    'id': example['id']
                 }
             }
             
-            # Optionally add original domain info if needed
-            if 'original_domain' in example:
-                data['extra_info']['domain'] = example['original_domain']
-            
-            if 'original_subdomain' in example:
-                data['extra_info']['subdomain'] = example['original_subdomain']
-                
             return data
 
         return process_fn
