@@ -66,6 +66,7 @@ class LLMGenerationManager:
             skip_special_tokens=True
         )
 
+        print(f"🩵 response string: {responses_str}")
         responses_str = [resp.split('</search>')[0] + '</search>'
                  if '</search>' in resp 
                  else resp.split('</answer>')[0] + '</answer>'
@@ -146,22 +147,25 @@ class LLMGenerationManager:
     def _generate_with_gpu_padding(self, active_batch: DataProto) -> DataProto:
         """
             Wrapper for generation that handles multi-GPU padding requirements.
-            if num_gpus <= 1, return self.actor_rollout_wg.generate_sequences(active_batch)
-            if active_batch size is not divisible by num_gpus, pad with first sequence
-            then remove padding from output
+            Ensures batch size is always a multiple of 16 (total workers across nodes)
         """
-        num_gpus = self.config.num_gpus
-        if num_gpus <= 1:
-            return self.actor_rollout_wg.generate_sequences(active_batch)
-            
+        # Hardcode to 16 workers (8 GPUs × 2 nodes) based on error message
+        # total_workers = 8 * 1
+        total_workers = self.config.num_gpus
+        print(f"💛 total_workers: {total_workers}")
+        
         batch_size = active_batch.batch['input_ids'].shape[0]
-        remainder = batch_size % num_gpus
+        
+        # Calculate needed padding to make batch size a multiple of 16
+        # This will be 0 if batch_size is already a multiple of 16
+        remainder = batch_size % total_workers
         
         if remainder == 0:
+            # No padding needed
             return self.actor_rollout_wg.generate_sequences(active_batch)
         
         # Add padding sequences
-        padding_size = num_gpus - remainder
+        padding_size = total_workers - remainder
         padded_batch = {}
         
         for k, v in active_batch.batch.items():
@@ -202,6 +206,7 @@ class LLMGenerationManager:
 
         # Main generation loop
         for step in range(self.config.max_turns):
+            print(f"💚 in the {step}-th generation loop...")
             if not active_mask.sum():
                 break
             rollings.batch = self.tensor_fn.cut_to_effective_len(
@@ -244,6 +249,7 @@ class LLMGenerationManager:
             
         # final LLM rollout
         if active_mask.sum():
+            print(f"💜 Generating final LLM rollout...")
             rollings.batch = self.tensor_fn.cut_to_effective_len(
                 rollings.batch,
                 keys=['input_ids', 'attention_mask', 'position_ids']
@@ -258,6 +264,7 @@ class LLMGenerationManager:
             meta_info = gen_output.meta_info            
             responses_ids, responses_str = self._postprocess_responses(gen_output.batch['responses'])
             responses_ids, responses_str = self.tensor_fn._example_level_pad(responses_ids, responses_str, active_mask)
+            print(f"💜 final llm response str: {responses_str}")
 
             # # Execute in environment and process observations
             _, dones = self.execute_predictions(
@@ -302,6 +309,7 @@ class LLMGenerationManager:
         
         final_output = DataProto.from_dict(final_output)
         final_output.meta_info.update(meta_info)
+        print(f"🩵 Composed final output")
         
         return final_output
 
@@ -319,12 +327,15 @@ class LLMGenerationManager:
         Returns:
             List of observation strings
         """
+        print(f"🤍 executing predictions...")
         cur_actions, contents = self.postprocess_predictions(predictions)
         next_obs, dones = [], []
         
         search_queries = [content for action, content in zip(cur_actions, contents) if action == 'search']
+        print(f"🤍 search queries: {search_queries}")
         if do_search:
             search_results = self.batch_search(search_queries)
+            print(f"RL: performed search, and here's the search_results: {search_results}")
             assert len(search_results) == sum([1 for action in cur_actions if action == 'search'])
         else:
             search_results = [''] * sum([1 for action in cur_actions if action == 'search'])
@@ -346,7 +357,8 @@ class LLMGenerationManager:
 If I want to search, I should put the query between <search> and </search>. \
 If I want to give the final answer, I should put the answer between <answer> and </answer>. Let me try again.\n')
                     dones.append(0)
-            
+        
+        print(f"🤍 Finished actions: {cur_actions}")
         assert len(search_results) == 0
             
         return next_obs, dones
