@@ -9,7 +9,7 @@ from verl.utils.hdfs_io import copy, makedirs
 import argparse
 
 
-example_answer = "\\(\\boxed{C}\\)"
+example_answer = "\\boxed{C}"
 def make_prefix(dp, template_type):
     question = dp['question']
 
@@ -20,7 +20,7 @@ def make_prefix(dp, template_type):
 You must conduct reasoning inside <think> and </think> first every time you get new information. \
 After reasoning, if you find you lack some knowledge, you can call a search engine by <search> query </search> and it will return the top searched results between <information> and </information>. \
 You can search as many times as your want. \
-If you find no further external knowledge needed, you can directly provide the answer inside <answer> and </answer>, without detailed illustrations. For example, <answer> The correct answer is {example_answer}. </answer>. Question: {question}\n"""
+If you find no further external knowledge needed, you can directly provide the answer inside <answer> and </answer>, without detailed illustrations. For example, <answer> {example_answer} </answer>. Question: {question}\n"""
     else:
         raise NotImplementedError
     return prefix

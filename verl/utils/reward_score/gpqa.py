@@ -14,8 +14,9 @@ def compute_score(solution_str, ground_truth, format_score=0., score=0.) -> floa
     Returns:
         float: Score between 0.0 and 1.0
     """
+    answer_str = ground_truth['target'][0]
     print(f"🩷💛🩵 Computing gpqa scores:\n")
-    print(f"🩷💛🩵 {solution_str}\n{ground_truth}")
+    print(f"🩷💛🩵 {solution_str}\n{answer_str}")
     retval = 0.0
     try:
         # Extract the answer from the solution string
@@ -31,13 +32,13 @@ def compute_score(solution_str, ground_truth, format_score=0., score=0.) -> floa
         
         # Normalize the predicted and ground truth answers
         normalized_pred_answer = normalize_answer(pred_answer)
-        normalized_ground_truth = normalize_answer(ground_truth)
+        normalized_ground_truth = normalize_answer(answer_str)
         
         # Check exact match
         if normalized_pred_answer == normalized_ground_truth:
             retval = 1.0
-        else:
-            retval = 0.1  # give a bit format score
+        # else:
+        #     retval = 0.1  # give a bit format score
     except Exception as e:
         print(f"Error in compute_score: {e}")
     
@@ -75,7 +76,7 @@ def extract_answer(output, mode='choose'):
         # Look for a pattern like "The answer is A" or "I choose B"
         choice_patterns = [
             r'(?:the answer is|i choose|answer:|choice:|option:)\s*([A-Ea-e])',
-            r'(?:the correct answer is|the answer choice is)\s*([A-Ea-e])'
+            r'(?:the correct answer is|the answer choice is | <answer>)\s*([A-Ea-e])'
         ]
         
         for pattern in choice_patterns:

@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH --job-name=ppo
+#SBATCH --job-name=ppo-gpqa
 #SBATCH --nodes=1
 #SBATCH --ntasks-per-node=1         
 #SBATCH --hint=nomultithread   
@@ -34,7 +34,7 @@ export EXPERIMENT_NAME=gpqa-search-r1-ppo-llama3.2-3b-it-em-1n
 # export BASE_MODEL='Qwen/Qwen2.5-3B-Instruct'
 # export EXPERIMENT_NAME=gpqa-search-r1-ppo-qwen2.5-3b-it-em
 # export BASE_MODEL='Qwen/Qwen2.5-7B-Instruct'
-# export EXPERIMENT_NAME=gpqa-search-r1-ppo-qwen2.5-7b-it-em
+# export EXPERIMENT_NAME=gpqa-search-r1-ppo-qwen2.5-7b-it-em-1n
 
 # set -x
 export VLLM_ATTENTION_BACKEND=XFORMERS # vllm + qwen2-7b with flash_attn has some issues
@@ -87,7 +87,7 @@ PYTHONUNBUFFERED=1 python3 -m verl.trainer.main_ppo \
     algorithm.kl_ctrl.kl_coef=0.001 \
     algorithm.no_think_rl=false \
     trainer.critic_warmup=0 \
-    trainer.logger=['console', 'wandb'] \
+    trainer.logger=['wandb'] \
     +trainer.val_only=false \
     +trainer.val_before_train=true \
     trainer.default_hdfs_dir=null \
