@@ -27,7 +27,7 @@ WAND_PROJECT='Search-R1'
 
 
 export BASE_MODEL='meta-llama/Llama-3.2-3B-Instruct'
-export EXPERIMENT_NAME=gpqa-search-r1-ppo-llama3.2-3b-it-em-1n
+export EXPERIMENT_NAME=gpqa-no-search-ppo-llama3.2-3b-it-em-1n
 # export BASE_MODEL='meta-llama/Llama-3.1-8B-Instruct'
 # export EXPERIMENT_NAME=gpqa-search-r1-ppo-llama3.1-8b-it-em
 
@@ -101,7 +101,5 @@ PYTHONUNBUFFERED=1 python3 -m verl.trainer.main_ppo \
     trainer.total_training_steps=300 \
     trainer.default_hdfs_dir=null \
     trainer.default_local_dir=verl_checkpoints/$EXPERIMENT_NAME \
-    max_turns=2 \
-    retriever.url="http://rulin@a100-st-p4de24xlarge-290:45629/retrieve" \
-    retriever.topk=3 \
+    do_search=false \
     2>&1 | tee $EXPERIMENT_NAME.log
