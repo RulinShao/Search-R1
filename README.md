@@ -1,13 +1,13 @@
 # Search-R1: Train your LLMs to reason and call a search engine with reinforcement learning
 
-<strong>Search-R1</strong> is a reproduction of <strong>DeepSeek-R1(-Zero)</strong> methods for <em>training reasoning and searching (tool-call) interleaved LLMs</em>. We built upon [veRL](https://github.com/volcengine/verl).
+<strong>Search-R1</strong> is an extension of <strong>DeepSeek-R1(-Zero)</strong> methods for <em>training reasoning and searching (tool-call) interleaved LLMs</em>. We built upon [veRL](https://github.com/volcengine/verl).
 
 Through RL (rule-based outcome reward), the 3B **base** LLM (both Qwen2.5-3b-base and Llama3.2-3b-base) develops reasoning and search engine calling abilities all on its own.
 
-Twitter thread: [link](https://x.com/BowenJin13/status/1895544294473109889); Full experiment log: [link](https://wandb.ai/peterjin/Search-R1-open)
+Paper: [link](https://arxiv.org/pdf/2503.09516); Model and data: [link](https://huggingface.co/collections/PeterJinGo/search-r1-67d1a021202731cb065740f5); Twitter thread: [link](https://x.com/BowenJin13/status/1895544294473109889); Full experiment log 1: [link](https://wandb.ai/peterjin/Search-R1-open); Full experiment log 2: [link](https://wandb.ai/peterjin/Search-R1-nq_hotpotqa_train)
 
+You can refer to this [link](https://github.com/PeterGriffinJin/Search-R1/tree/main/scripts/nq_hotpotqa) for detailed instructions on reproducing the results from the paper.
 
-The paper will be released soon!
 
 ![single-turn](public/single-turn.png)
 
@@ -165,10 +165,9 @@ You can refer to ```search_r1/search/retriever_server.py``` for an example of la
 The concept of Search-R1 is inspired by [Deepseek-R1](https://github.com/deepseek-ai/DeepSeek-R1) and [TinyZero](https://github.com/Jiayi-Pan/TinyZero/tree/main).
 Its implementation is built upon [veRL](https://github.com/volcengine/verl) and [RAGEN](https://github.com/ZihanWang314/RAGEN/tree/main). 
 We sincerely appreciate the efforts of these teams for their contributions to open-source research and development.
+We thank Jinsung Yoon and Sercan Arik for insightful discussions.
 
 ## Citations
-
-To be added
 
 ```bibtex
 @misc{jin2025searchr1,

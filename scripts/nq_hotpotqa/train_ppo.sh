@@ -1,53 +1,32 @@
-#!/bin/bash
-#SBATCH --job-name=ppo
-#SBATCH --nodes=1
-#SBATCH --ntasks-per-node=1         
-#SBATCH --hint=nomultithread   
-#SBATCH --account comem
-#SBATCH --qos comem_high
-#SBATCH --mem 1000G
-#SBATCH --gres=gpu:8           
-#SBATCH --time 120:00:00      
-#SBATCH --requeue
-#SBATCH --chdir=/fsx-comem/rulin/Search-R1
-#SBATCH --output=/fsx-comem/rulin/Search-R1/outputs/slurm_cache/slurm-%A_%a.out
-#SBATCH --array=0
-
-
-
-cd /fsx-comem/rulin/Search-R1
-source /home/rulin/miniconda3/bin/activate
-conda activate searchr1
-
+data_name=nq_hotpotqa_train
 
 export CUDA_VISIBLE_DEVICES=0,1,2,3,4,5,6,7
-export DATA_DIR='data/nq_search'
+export DATA_DIR=data/${data_name} # first download the data from https://huggingface.co/datasets/PeterJinGo/nq_hotpotqa_train
 
-WAND_PROJECT='Search-R1'
+WAND_PROJECT="Search-R1"
 
-# export BASE_MODEL='meta-llama/Llama-3.2-3B'
-# export EXPERIMENT_NAME=nq-search-r1-ppo-llama3.2-3b-em
-export BASE_MODEL='meta-llama/Llama-3.2-3B-Instruct'
-export EXPERIMENT_NAME=nq-search-r1-ppo-llama3.2-3b-it-em-1n
+export BASE_MODEL='meta-llama/Llama-3.2-3B'
+export EXPERIMENT_NAME=${data_name}-search-r1-ppo-llama3.2-3b-em
+# export BASE_MODEL='meta-llama/Llama-3.2-3B-Instruct'
+# export EXPERIMENT_NAME=${data_name}-search-r1-ppo-llama3.2-3b-it-em
 # export BASE_MODEL='meta-llama/Llama-3.1-8B'
-# export EXPERIMENT_NAME=nq-search-r1-ppo-llama3.1-8b-em
+# export EXPERIMENT_NAME=${data_name}-search-r1-ppo-llama3.1-8b-em
 # export BASE_MODEL='meta-llama/Llama-3.1-8B-Instruct'
-# export EXPERIMENT_NAME=nq-search-r1-ppo-llama3.1-8b-it-em
+# export EXPERIMENT_NAME=${data_name}-search-r1-ppo-llama3.1-8b-it-em
 
 # export BASE_MODEL='Qwen/Qwen2.5-3B'
-# export EXPERIMENT_NAME=nq-search-r1-ppo-qwen2.5-3b-em
+# export EXPERIMENT_NAME=${data_name}-search-r1-ppo-qwen2.5-3b-em
 # export BASE_MODEL='Qwen/Qwen2.5-3B-Instruct'
-# export EXPERIMENT_NAME=nq-search-r1-ppo-qwen2.5-3b-it-em
+# export EXPERIMENT_NAME=${data_name}-search-r1-ppo-qwen2.5-3b-it-em
 # export BASE_MODEL='Qwen/Qwen2.5-7B'
-# export EXPERIMENT_NAME=nq-search-r1-ppo-qwen2.5-7b-em
+# export EXPERIMENT_NAME=${data_name}-search-r1-ppo-qwen2.5-7b-em
 # export BASE_MODEL='Qwen/Qwen2.5-7B-Instruct'
-# export EXPERIMENT_NAME=nq-search-r1-ppo-qwen2.5-7b-it-em
+# export EXPERIMENT_NAME=${data_name}-search-r1-ppo-qwen2.5-7b-it-em
 
 # set -x
 export VLLM_ATTENTION_BACKEND=XFORMERS # vllm + qwen2-7b with flash_attn has some issues
 
 # max_prompt_length = (config['training']['max_start_length'] + config['training']['max_response_length'] * (config['training']['max_turns'] - 1) + config['training']['max_obs_length'] * config['training']['max_turns'])
-ray start --head
 
 PYTHONUNBUFFERED=1 python3 -m verl.trainer.main_ppo \
     data.train_files=$DATA_DIR/train.parquet \
@@ -107,7 +86,7 @@ PYTHONUNBUFFERED=1 python3 -m verl.trainer.main_ppo \
     trainer.total_training_steps=305 \
     trainer.default_hdfs_dir=null \
     trainer.default_local_dir=verl_checkpoints/$EXPERIMENT_NAME \
-    max_turns=2 \
-    retriever.url="http://rulin@a100-st-p4de24xlarge-946:38649/retrieve" \
+    max_turns=4 \
+    retriever.url="http://127.0.0.1:8000/retrieve" \
     retriever.topk=3 \
     2>&1 | tee $EXPERIMENT_NAME.log
