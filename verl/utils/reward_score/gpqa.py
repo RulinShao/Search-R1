@@ -15,8 +15,7 @@ def compute_score(solution_str, ground_truth, format_score=0., score=0.) -> floa
         float: Score between 0.0 and 1.0
     """
     answer_str = ground_truth['target'][0]
-    print(f"🩷💛🩵 Computing gpqa scores:\n")
-    print(f"🩷💛🩵 {solution_str}\n{answer_str}")
+    print(f"🩷💛🩵 Computing gpqa scores:\n {solution_str}")
     retval = 0.0
     try:
         # Extract the answer from the solution string
@@ -42,7 +41,7 @@ def compute_score(solution_str, ground_truth, format_score=0., score=0.) -> floa
     except Exception as e:
         print(f"Error in compute_score: {e}")
     
-    print(f"🩷💛🩵 Correctness: {retval}")
+    print(f"🩷💛🩵 Extracted answer: {pred_answer} | Target answer: {answer_str} | Correctness: {retval}")
     return retval
 
 
